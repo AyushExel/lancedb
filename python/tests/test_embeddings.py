@@ -11,17 +11,22 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 import sys
+import time
 
 import lance
+import pytest
 import numpy as np
 import pyarrow as pa
 
+import lancedb
 from lancedb.conftest import MockTextEmbeddingFunction
 from lancedb.embeddings import (
     EmbeddingFunctionConfig,
     EmbeddingFunctionRegistry,
+    get_registry,
     with_embeddings,
 )
+from lancedb.pydantic import LanceModel, Vector
 
 
 def mock_embed_func(input_data):
@@ -83,3 +88,44 @@ def test_embedding_function(tmp_path):
     expected = func.compute_query_embeddings("hello world")
 
     assert np.allclose(actual, expected)
+
+def test_rate_limited_embedding_function(tmp_path):
+
+    def _get_schema(model):
+        class Schema(LanceModel):
+            text: str = model.SourceField()
+            vector: Vector(model.ndims()) = model.VectorField()
+        
+        return Schema
+
+    model_builder = get_registry().get("test_rate_limited")
+    model = model_builder.create() # without rate limiting
+    
+    db = lancedb.connect(tmp_path)
+    
+    table = db.create_table("test_without_limit", schema=_get_schema(model))
+
+    table.add([{"text": "hello world"}]) # 
+    assert len(table) == 1
+    time.sleep(0.1)
+
+    # Should hit the rate limit and throw an exception as we are not handling rate limiting
+    #### The RateLimitHandler should handle this but it gets re-initilaized
+    with pytest.raises(Exception) as e:
+        table.add([{"text": "hello world"}])
+        table.add([{"text": "hello world"}]) 
+    e.value == "429"
+   
+    '''
+    model = model_builder.create(rate_limit=1, time_unit=0.1) # handle rate limiting in the embedding function
+    table = db.create_table("test_with_limit", schema=_get_schema(model))
+
+    table.add([{"text": "hello"}, {"text": "bye"}])
+    table.add([{"text": "hello"}, {"text": "bye"}])
+    table.add([{"text": "hello"}, {"text": "bye"}])
+    assert len(table) == 3
+    '''
+
+    
+
+
