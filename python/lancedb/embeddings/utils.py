@@ -166,7 +166,7 @@ class FunctionWrapper:
 class RateLimitHandler:
     """
     Rate limiter handler class to allow working with rate limited APIs.
-    Uses sliding window counter algorithm to keep track of the number of requests in a given time window. 
+    Uses sliding window counter algorithm to keep track of the number of requests in a given time window.
     It waits for the time window to expire if the number of requests exceeds the rate limit.
 
     Parameters
@@ -175,7 +175,7 @@ class RateLimitHandler:
         Number of requests allowed per time_unit
     time_unit: float
         Time window in seconds
-    
+
     Examples
     --------
     >>> from lancedb.embeddings.utils import RateLimiterHandler
@@ -184,17 +184,18 @@ class RateLimitHandler:
     >>> rate_limiter.wait()
     Rate limit exceeded. Waiting for 0.10 seconds before allowing request.
     """
+
     def __init__(self, rate_limit, time_unit):
         self.rate_limit = rate_limit
         self.time_unit = time_unit
         self.request_count = 0
         self.window_start_time = time.time()
-    
+
     def wait(self):
         if not self.rate_limit:
             return
         current_time = time.time()
-        
+
         if current_time - self.window_start_time > self.time_unit:
             self.window_start_time = current_time
             self.request_count = 0
@@ -203,11 +204,12 @@ class RateLimitHandler:
         else:
             wait_time = (self.window_start_time + self.time_unit - current_time) + 0.01
 
-            LOGGER.info(f"Rate limit exceeded. Waiting for {wait_time:.2f} seconds before allowing request.")
+            LOGGER.info(
+                f"Rate limit exceeded. Waiting for {wait_time:.2f} seconds before allowing request."
+            )
             time.sleep(wait_time)
             self.window_start_time = current_time
             self.request_count = 1
-
 
 
 def url_retrieve(url: str):

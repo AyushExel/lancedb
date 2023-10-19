@@ -89,23 +89,23 @@ def test_embedding_function(tmp_path):
 
     assert np.allclose(actual, expected)
 
-def test_rate_limited_embedding_function(tmp_path):
 
+def test_rate_limited_embedding_function(tmp_path):
     def _get_schema(model):
         class Schema(LanceModel):
             text: str = model.SourceField()
             vector: Vector(model.ndims()) = model.VectorField()
-        
+
         return Schema
 
     model_builder = get_registry().get("test_rate_limited")
-    model = model_builder.create() # without rate limiting
-    
+    model = model_builder.create()  # without rate limiting
+
     db = lancedb.connect(tmp_path)
-    
+
     table = db.create_table("test_without_limit", schema=_get_schema(model))
 
-    table.add([{"text": "hello world"}]) # 
+    table.add([{"text": "hello world"}])  #
     assert len(table) == 1
     time.sleep(0.1)
 
@@ -113,10 +113,10 @@ def test_rate_limited_embedding_function(tmp_path):
     #### The RateLimitHandler should handle this but it gets re-initilaized
     with pytest.raises(Exception) as e:
         table.add([{"text": "hello world"}])
-        table.add([{"text": "hello world"}]) 
+        table.add([{"text": "hello world"}])
     e.value == "429"
-   
-    '''
+
+    """
     model = model_builder.create(rate_limit=1, time_unit=0.1) # handle rate limiting in the embedding function
     table = db.create_table("test_with_limit", schema=_get_schema(model))
 
@@ -124,8 +124,4 @@ def test_rate_limited_embedding_function(tmp_path):
     table.add([{"text": "hello"}, {"text": "bye"}])
     table.add([{"text": "hello"}, {"text": "bye"}])
     assert len(table) == 3
-    '''
-
-    
-
-
+    """

@@ -1,5 +1,5 @@
 import os
-import time 
+import time
 
 import numpy as np
 import pytest
@@ -20,18 +20,20 @@ def doctest_setup(monkeypatch, tmpdir):
     # Work in a temporary directory
     monkeypatch.chdir(tmpdir)
 
+
 class MockEmbeddingAPI:
     """
     Dummy class representing an embedding API that is rate limited
     """
+
     def __init__(self, rate_limit=0, time_unit=60):
         self.rate_limit = rate_limit
         self.time_unit = time_unit
         self.request_count = 0
         self.window_start_time = time.time()
-    
+
     def embed(self, texts):
-        if not self.rate_limit: # no rate limit
+        if not self.rate_limit:  # no rate limit
             return self._process_api_request(texts)
 
         current_time = time.time()
@@ -44,8 +46,8 @@ class MockEmbeddingAPI:
             self.request_count += 1
             return self._process_api_request(texts)
         else:
-            raise Exception("429") # too many requests
-        
+            raise Exception("429")  # too many requests
+
     def _process_api_request(self, texts):
         return [self._compute_one_embedding(row) for row in texts]
 
@@ -54,11 +56,13 @@ class MockEmbeddingAPI:
         emb /= np.linalg.norm(emb)
         return emb
 
+
 @get_registry().register("test")
 class MockTextEmbeddingFunction(TextEmbeddingFunction):
     """
     Return the hash of the first 10 characters
     """
+
     def generate_embeddings(self, texts):
         return [self._compute_one_embedding(row) for row in texts]
 
@@ -70,13 +74,17 @@ class MockTextEmbeddingFunction(TextEmbeddingFunction):
     def ndims(self):
         return 10
 
+
 @get_registry().register("test_rate_limited")
 class MockRateLimitedTextEmbeddingFunction(TextEmbeddingFunction):
     """
-    Mock Ebedding function that calls a rate limited API. 
+    Mock Ebedding function that calls a rate limited API.
     Limits are set to 1 request per 0.1 sec to facilitate testing.
     """
-    _model: MockEmbeddingAPI = PrivateAttr(default=MockEmbeddingAPI(rate_limit=1, time_unit=0.1))
+
+    _model: MockEmbeddingAPI = PrivateAttr(
+        default=MockEmbeddingAPI(rate_limit=1, time_unit=0.1)
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

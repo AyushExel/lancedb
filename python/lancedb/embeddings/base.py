@@ -23,10 +23,10 @@ class EmbeddingFunction(BaseModel, ABC):
 
     _ndims: int = PrivateAttr()
     _rate_limit_handler: RateLimitHandler = PrivateAttr()
-    rate_limit: int = 0 # 0 means no rate limit
+    rate_limit: int = 0  # 0 means no rate limit
     time_unit: float = 60
 
-    def __init__(self,*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._rate_limit_handler = RateLimitHandler(self.rate_limit, self.time_unit)
 
@@ -36,18 +36,24 @@ class EmbeddingFunction(BaseModel, ABC):
         Create an instance of the embedding function
         """
         return cls(**kwargs)
-    
-    def compute_query_embeddings_with_rate_limit(self, *args, **kwargs) -> List[np.array]:
+
+    def compute_query_embeddings_with_rate_limit(
+        self, *args, **kwargs
+    ) -> List[np.array]:
         """
         Compute the embeddings for a given user query. Each batched call to this method is considered
         one request.
         """
         # self.process_query() # TODO: Allow user to set custom operations(like trunc, split etc.) as a
-                              # pre-processing step
+        # pre-processing step
         self._rate_limit_handler.wait()
-        return self.compute_query_embeddings(*args, **kwargs) # delegate to compute_source_embeddings
+        return self.compute_query_embeddings(
+            *args, **kwargs
+        )  # delegate to compute_source_embeddings
 
-    def compute_source_embeddings_with_rate_limit(self, *args, **kwargs) -> List[np.array]:
+    def compute_source_embeddings_with_rate_limit(
+        self, *args, **kwargs
+    ) -> List[np.array]:
         """
         Compute the embeddings for a the source. Each batched call to this method is considered
         one request.
