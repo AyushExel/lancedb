@@ -119,11 +119,14 @@ class EmbeddingFunctionRegistry:
             return {}
         serialized = metadata[b"embedding_functions"]
         raw_list = json.loads(serialized.decode("utf-8"))
+
         return {
             obj["vector_column"]: EmbeddingFunctionConfig(
                 vector_column=obj["vector_column"],
                 source_column=obj["source_column"],
                 function=self.get(obj["name"])(**obj["model"]),
+                window_start_time=obj["window_start_time"],
+                request_count=obj["request_count"]
             )
             for obj in raw_list
         }
@@ -143,6 +146,8 @@ class EmbeddingFunctionRegistry:
             "model": json_data,
             "source_column": conf.source_column,
             "vector_column": conf.vector_column,
+            "window_start_time": float('-inf'), # probably can be removed. Current window can be calculated 
+            "request_count": 0
         }
 
     def get_table_metadata(self, func_list):
@@ -157,6 +162,7 @@ class EmbeddingFunctionRegistry:
         # so we need to json dump then utf8 encode
         metadata = json.dumps(json_data, indent=2).encode("utf-8")
         return {"embedding_functions": metadata}
+    
 
 
 # Global instance

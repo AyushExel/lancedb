@@ -330,7 +330,7 @@ class LanceModel(pydantic.BaseModel):
                 if src_func == func:
                     configs.append(
                         EmbeddingFunctionConfig(
-                            source_column=source, vector_column=vec, function=func
+                            source_column=source, vector_column=vec, function=func, window_start_time=float('-inf'), request_count=0 
                         )
                     )
         return configs

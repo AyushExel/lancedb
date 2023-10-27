@@ -188,28 +188,30 @@ class RateLimitHandler:
     def __init__(self, rate_limit, time_unit):
         self.rate_limit = rate_limit
         self.time_unit = time_unit
-        self.request_count = 0
-        self.window_start_time = time.time()
 
-    def wait(self):
+    def wait(self, window_start_time, request_count):
         if not self.rate_limit:
-            return
+            return window_start_time, request_count
+        
+        window_start_time = window_start_time or time.time()
         current_time = time.time()
 
-        if current_time - self.window_start_time > self.time_unit:
-            self.window_start_time = current_time
-            self.request_count = 0
-        if self.request_count < self.rate_limit:
-            self.request_count += 1
+        if current_time - window_start_time > self.time_unit:
+            window_start_time = current_time
+            request_count = 0
+        if request_count < self.rate_limit:
+            request_count += 1
         else:
-            wait_time = (self.window_start_time + self.time_unit - current_time) + 0.01
+            wait_time = (window_start_time + self.time_unit - current_time) + 0.01
 
             LOGGER.info(
                 f"Rate limit exceeded. Waiting for {wait_time:.2f} seconds before allowing request."
             )
             time.sleep(wait_time)
-            self.window_start_time = current_time
-            self.request_count = 1
+            window_start_time = current_time
+            request_count = 1
+        
+        return window_start_time, request_count
 
 
 def url_retrieve(url: str):

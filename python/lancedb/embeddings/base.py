@@ -52,15 +52,16 @@ class EmbeddingFunction(BaseModel, ABC):
         )  # delegate to compute_source_embeddings
 
     def compute_source_embeddings_with_rate_limit(
-        self, *args, **kwargs
+        self, window_start_time, request_count, *args, **kwargs
     ) -> List[np.array]:
         """
         Compute the embeddings for a the source. Each batched call to this method is considered
         one request.
         """
         # self.process_source()
-        self._rate_limit_handler.wait()
-        return self.compute_source_embeddings(*args, **kwargs)
+        rate_limit_meta = self._rate_limit_handler.wait(window_start_time, request_count)
+        col_data = self.compute_source_embeddings(*args, **kwargs)
+        return col_data, rate_limit_meta
 
     @abstractmethod
     def compute_query_embeddings(self, *args, **kwargs) -> List[np.array]:
@@ -146,6 +147,8 @@ class EmbeddingFunctionConfig(BaseModel):
     vector_column: str
     source_column: str
     function: EmbeddingFunction
+    window_start_time: float
+    request_count:int 
 
 
 class TextEmbeddingFunction(EmbeddingFunction):

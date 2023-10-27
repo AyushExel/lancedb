@@ -83,11 +83,12 @@ def _append_vector_col(data: pa.Table, metadata: dict, schema: Optional[pa.Schem
     vector column to the table.
     """
     functions = EmbeddingFunctionRegistry.get_instance().parse_functions(metadata)
+    functions_rate_limit_meta = {}
     for vector_column, conf in functions.items():
         func = conf.function
         if vector_column not in data.column_names:
-            col_data = func.compute_source_embeddings_with_rate_limit(
-                data[conf.source_column]
+            col_data, rate_limit_meta = func.compute_source_embeddings_with_rate_limit(
+               conf.window_start_time, conf.request_count,  data[conf.source_column]
             )
             if schema is not None:
                 dtype = schema.field(vector_column).type
@@ -96,6 +97,18 @@ def _append_vector_col(data: pa.Table, metadata: dict, schema: Optional[pa.Schem
             data = data.append_column(
                 pa.field(vector_column, type=dtype), pa.array(col_data, type=dtype)
             )
+            functions_rate_limit_meta[vector_column] = { "window_start_time": rate_limit_meta[0], "request_count": rate_limit_meta[1] }
+    
+    import json
+    serialized = metadata[b"embedding_functions"]
+    raw_list = json.loads(serialized.decode("utf-8"))
+
+    # Update the values
+    for item in raw_list:
+        if item["vector_column"] in functions_rate_limit_meta:
+            item.update(functions_rate_limit_meta[item["vector_column"]])
+
+    # Step 2: Convert the dictionary back to bytes TODO
     return data
 
 
