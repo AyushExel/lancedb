@@ -66,7 +66,7 @@ def _sanitize_data(
             metadata.update(data.schema.metadata or {})
             data = data.replace_schema_metadata(metadata)
         data = _sanitize_schema(
-            data, schema=schema, on_bad_vectors=on_bad_vectors, fill_value=fill_value
+            data, schema=data.schema, on_bad_vectors=on_bad_vectors, fill_value=fill_value
         )
     elif isinstance(data, Iterable):
         data = _to_record_batch_generator(
@@ -98,7 +98,7 @@ def _append_vector_col(data: pa.Table, metadata: dict, schema: Optional[pa.Schem
                 pa.field(vector_column, type=dtype), pa.array(col_data, type=dtype)
             )
             functions_rate_limit_meta[vector_column] = { "window_start_time": rate_limit_meta[0], "request_count": rate_limit_meta[1] }
-    
+    ######### TODO: refactor this into a separate function ########
     import json
     serialized = metadata[b"embedding_functions"]
     raw_list = json.loads(serialized.decode("utf-8"))
@@ -107,6 +107,11 @@ def _append_vector_col(data: pa.Table, metadata: dict, schema: Optional[pa.Schem
     for item in raw_list:
         if item["vector_column"] in functions_rate_limit_meta:
             item.update(functions_rate_limit_meta[item["vector_column"]])
+    
+    # Serialize the updated list
+    serialized = json.dumps(raw_list).encode("utf-8")
+    metadata[b"embedding_functions"] = serialized
+    data = data.replace_schema_metadata(metadata)
 
     # Step 2: Convert the dictionary back to bytes TODO
     return data
@@ -594,6 +599,7 @@ class LanceTable(Table):
             on_bad_vectors=on_bad_vectors,
             fill_value=fill_value,
         )
+        import pdb; pdb.set_trace()
         lance.write_dataset(data, self._dataset_uri, schema=self.schema, mode=mode)
         self._reset_dataset()
         register_event("add")
